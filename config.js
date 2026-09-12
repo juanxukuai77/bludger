@@ -7,7 +7,7 @@
 //    错误：https://xxxx.supabase.co/rest/v1/
 // ==============================================
 
-const SUPABASE_URL = 'https://icymqoltdthmdmjlszuu.supabase.co/rest/v1/'   // ← 替换成你的 Project URL（根域名，带引号）
+const SUPABASE_URL = 'https://icymqoltdthmdmjlszuu.supabase.co'   // ← 替换成你的 Project URL（根域名，带引号）
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImljeW1xb2x0ZHRobWRtamxzenV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkyMDY3NDIsImV4cCI6MjEwNDc4Mjc0Mn0.YYIOwzhaaNVNXlsGuBRo-pqEOXzjumjBXLygv7VOI-k'      // ← 替换成你的 anon / publishable key（带引号）
 
 // ==============================================
