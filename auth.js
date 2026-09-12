@@ -1,126 +1,124 @@
-// ==============================================
-// 登录系统 - auth.js
-// ==============================================
+// ==========================================
+// auth.js —— 直接覆盖你原来的
+// ==========================================
 
-let isRegisterMode = false
+// 登录/注册模式切换
+let isLoginMode = true
 
-// 所有 DOM 操作放到 DOMContentLoaded 里，确保元素已加载
+function toggleMode() {
+  isLoginMode = !isLoginMode
+  const title = document.getElementById('auth-title')
+  const btn = document.getElementById('auth-submit-btn')
+  const toggle = document.getElementById('auth-toggle-text')
+
+  if (isLoginMode) {
+    title.textContent = '登录'
+    btn.textContent = '登录'
+    toggle.innerHTML = '没有账号？<a href="#" onclick="toggleMode();return false;">去注册</a>'
+  } else {
+    title.textContent = '注册'
+    btn.textContent = '注册'
+    toggle.innerHTML = '已有账号？<a href="#" onclick="toggleMode();return false;">去登录</a>'
+  }
+  document.getElementById('auth-message').textContent = ''
+}
+
+// 提交登录/注册
+async function handleAuth() {
+  const email = document.getElementById('email').value.trim()
+  const password = document.getElementById('password').value
+
+  if (!email || !password) {
+    showMsg('请填写邮箱和密码', 'error')
+    return
+  }
+  if (password.length < 6) {
+    showMsg('密码至少 6 位', 'error')
+    return
+  }
+
+  const client = window.supabaseClient
+  if (!client) {
+    showMsg('系统错误：supabase 客户端未初始化', 'error')
+    console.error('window.supabaseClient 不存在，检查 config.js')
+    return
+  }
+
+  let error
+  if (isLoginMode) {
+    const res = await client.auth.signInWithPassword({ email, password })
+    error = res.error
+  } else {
+    const res = await client.auth.signUp({ email, password })
+    error = res.error
+  }
+
+  if (error) {
+    showMsg(error.message, 'error')
+  } else {
+    showMsg(isLoginMode ? '登录成功！' : '注册成功！', 'success')
+    if (isLoginMode) {
+      // 登录成功后刷新页面，让 onAuthStateChange 接管
+      setTimeout(() => location.reload(), 500)
+    }
+  }
+}
+
+// 退出登录
+async function logout() {
+  const client = window.supabaseClient
+  if (client) {
+    await client.auth.signOut()
+    location.reload()
+  }
+}
+
+// 显示消息
+function showMsg(text, type) {
+  const el = document.getElementById('auth-message')
+  if (el) {
+    el.textContent = text
+    el.style.color = type === 'error' ? '#ef4444' : '#22c55e'
+  }
+}
+
+// ==========================================
+// 页面加载后：监听登录状态
+// ==========================================
 document.addEventListener('DOMContentLoaded', () => {
+  const client = window.supabaseClient
 
-    // 获取DOM元素
-    const loginOverlay = document.getElementById('login-overlay')
-    const appContent = document.getElementById('app-content')
-    const loginForm = document.getElementById('login-form')
-    const loginEmail = document.getElementById('login-email')
-    const loginPassword = document.getElementById('login-password')
-    const loginSubmitBtn = document.getElementById('login-submit')
-    const loginToggle = document.getElementById('login-toggle')
-    const loginTitle = document.getElementById('login-title')
-    const loginMessage = document.getElementById('login-message')
-    const logoutBtn = document.getElementById('logoutBtn')
+  if (!client) {
+    console.error('supabaseClient 未找到，检查 config.js 是否正确挂载了 window.supabaseClient')
+    return
+  }
 
-    // 切换 登录/注册 模式
-    loginToggle.addEventListener('click', () => {
-        isRegisterMode = !isRegisterMode
-        loginTitle.textContent = isRegisterMode ? '注册账号' : '登录'
-        loginSubmitBtn.textContent = isRegisterMode ? '注册' : '登录'
-        loginToggle.textContent = isRegisterMode ? '已有账号？去登录' : '没有账号？去注册'
-        loginMessage.textContent = ''
-    })
+  // 监听登录状态变化
+  client.auth.onAuthStateChange((event, session) => {
+    const overlay = document.getElementById('auth-overlay')
+    const app = document.getElementById('app-container')
 
-    // 提交（登录 or 注册）
-    loginForm.addEventListener('submit', async (e) => {
-        e.preventDefault()
-        const email = loginEmail.value.trim()
-        const password = loginPassword.value
-
-        if (!email || !password) {
-            showLoginMessage('请输入邮箱和密码', 'error')
-            return
-        }
-
-        if (password.length < 6) {
-            showLoginMessage('密码至少6位', 'error')
-            return
-        }
-
-        setLoading(true, loginSubmitBtn)
-
-        try {
-            if (isRegisterMode) {
-                // 注册
-                const { data, error } = await window.supabase.auth.signUp({ email, password })
-                if (error) throw error
-                showLoginMessage('注册成功！请登录', 'success')
-                // 自动切回登录模式
-                setTimeout(() => {
-                    isRegisterMode = false
-                    loginTitle.textContent = '登录'
-                    loginSubmitBtn.textContent = '登录'
-                    loginToggle.textContent = '没有账号？去注册'
-                }, 1500)
-            } else {
-                // 登录
-                const { data, error } = await window.supabase.auth.signInWithPassword({ email, password })
-                if (error) throw error
-                // 成功 → onAuthStateChange 会自动处理页面切换
-            }
-        } catch (err) {
-            showLoginMessage(err.message, 'error')
-        } finally {
-            setLoading(false, loginSubmitBtn)
-        }
-    })
-
-    // 退出登录（挂在 window 上，HTML onclick 可用）
-    window.logout = function() {
-        window.supabase.auth.signOut().then(() => {
-            loginEmail.value = ''
-            loginPassword.value = ''
-            if (logoutBtn) logoutBtn.style.display = 'none'
-        })
+    if (session?.user) {
+      // 已登录 → 隐藏登录框，显示内容
+      if (overlay) overlay.style.display = 'none'
+      if (app) app.style.display = 'block'
+    } else {
+      // 未登录 → 显示登录框，隐藏内容
+      if (overlay) overlay.style.display = 'flex'
+      if (app) app.style.display = 'none'
     }
+  })
 
-    // 监听登录状态变化
-    window.supabase.auth.onAuthStateChange((event, session) => {
-        if (session && session.user) {
-            // 已登录 → 显示主应用，隐藏登录界面
-            if (loginOverlay) loginOverlay.style.display = 'none'
-            if (appContent) appContent.style.display = 'block'
-            if (logoutBtn) logoutBtn.style.display = 'block'
-        } else {
-            // 未登录 → 显示登录界面，隐藏主应用
-            if (loginOverlay) loginOverlay.style.display = 'flex'
-            if (appContent) appContent.style.display = 'none'
-            if (logoutBtn) logoutBtn.style.display = 'none'
-        }
-    })
-
-    // 页面加载时检查是否已有登录状态
-    window.supabase.auth.getSession().then(({ data: { session } }) => {
-        if (session && session.user) {
-            if (loginOverlay) loginOverlay.style.display = 'none'
-            if (appContent) appContent.style.display = 'block'
-            if (logoutBtn) logoutBtn.style.display = 'block'
-        } else {
-            if (loginOverlay) loginOverlay.style.display = 'flex'
-            if (appContent) appContent.style.display = 'none'
-            if (logoutBtn) logoutBtn.style.display = 'none'
-        }
-    })
-
-    // ===== 工具函数 =====
-    function showLoginMessage(msg, type) {
-        if (!loginMessage) return
-        loginMessage.textContent = msg
-        loginMessage.className = 'login-msg ' + (type || '')
+  // 页面一打开先检查当前会话
+  client.auth.getUser().then(({ data }) => {
+    const overlay = document.getElementById('auth-overlay')
+    const app = document.getElementById('app-container')
+    if (data?.user) {
+      if (overlay) overlay.style.display = 'none'
+      if (app) app.style.display = 'block'
+    } else {
+      if (overlay) overlay.style.display = 'flex'
+      if (app) app.style.display = 'none'
     }
-
-    function setLoading(loading, btn) {
-        if (!btn) return
-        btn.disabled = loading
-        btn.textContent = loading
-            ? (isRegisterMode ? '处理中...' : '登录中...')
-            : (isRegisterMode ? '注册' : '登录')
-    }
+  })
 })
