@@ -1,0 +1,57 @@
+<!--
+  ============================================================
+  登录框片段 —— 复制到你的 index.html 里
+  ============================================================
+
+  位置规则：
+  1) <head> 里加：
+       <link rel="stylesheet" href="style-auth.css" />
+
+  2) <body> 最开头（第一个子元素）粘贴下面这块：
+     ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
+
+  ⚠️ 关键：按钮用 onclick="return handleAuth()"，
+     必须 return false，否则一点击就会跳转/刷新。
+     我们已在 auth.js 末尾 return false 了。
+  ============================================================
+-->
+
+<!-- ===== 登录遮罩层：未登录时显示，登录后 display:none ===== -->
+<div id="auth-overlay">
+  <div class="auth-card">
+    <h2 id="auth-title">登录</h2>
+    <p class="subtitle">请登录后使用系统</p>
+
+    <input id="email"    type="email"    placeholder="邮箱" />
+    <input id="password" type="password" placeholder="密码（至少6位）" />
+
+    <!-- ⚠️ 这里是重点：onclick 前面必须写 return -->
+    <button id="auth-submit-btn" onclick="return handleAuth()">登录</button>
+
+    <p id="auth-toggle-text">
+      没有账号？<a href="javascript:void(0)" onclick="toggleMode()">去注册</a>
+    </p>
+    <p id="auth-message"></p>
+  </div>
+</div>
+
+<!-- ===== 你的页面主体：用这个包裹，登录后才可见 ===== -->
+<div id="app-container" style="display:none;">
+  <button id="logout-btn" onclick="return logout()">退出</button>
+
+  <!-- ⬇⬇⬇ 把你原来 <body> 里的所有内容原样搬到这里 ⬇⬇⬇ -->
+
+  <!-- ===== 你的内容区域结束 ===== -->
+</div>
+
+<!--
+  ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
+
+  3) <head> 或 </body> 前，按顺序引入脚本：
+       <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+       <script src="config.js"></script>
+       <script src="auth.js"></script>
+
+  引入顺序绝不能乱：官方库 → config.js → auth.js
+  ============================================================
+-->
