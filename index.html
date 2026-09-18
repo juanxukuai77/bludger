@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>二流人预警</title>
+
+    <!-- ===== Supabase + 登录系统（顺序不能乱）===== -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
+    <link rel="stylesheet" href="style-auth.css">
+
+    <style>
+        :root {
+            --ink-black: #1a1a1a;
+            --ink-gray: #4a4a4a;
+            --ink-light: #8a8a8a;
+            --verdigris: #5f9ea0;
+            --azurite: #4a7c8c;
+            --malachite: #5a8a6e;
+            --mountain-green: #3d6b4f;
+            --pale-celadon: #e8f4f0;
+            --mist-white: #f7f5f0;
+            --imperial-yellow: #d4a574;
+            --cinnabar: #c93756;
+            --ochre: #b87333;
+            --indigo: #2c4f66;
+            --clay: #9c8d7a;
+            --rice-paper: #faf8f3;
+            --scroll-beige: #f0ebe3;
+            --border-ink: #e2ddd5;
+            --shadow-soft: 0 4px 20px rgba(0, 0, 0, 0.06);
+            --shadow-medium: 0 8px 30px rgba(0, 0, 0, 0.12);
+            --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 14px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Noto Serif SC', 'Source Han Serif SC', 'SimSun', 'STSong', serif;
+            background-color: #f2efe9;
+            color: var(--ink-black);
+            line-height: 1.8;
+        }
+
+        /* ==================== 布局：顶部栏 + 左侧面板 + 右侧内容 ==================== */
+        .layout {
+            display: flex;
+            min-height: calc(100vh - 60px);
+            gap: 20px;
+            padding: 20px;
+            max-width: 1500px;
+            margin: 0 auto;
+        }
+
+        /* ---- 左侧工具面板 ---- */
+        .side-panel {
+            width: 340px;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .side-panel__inner {
+            position: sticky;
+            top: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .brand {
+            background: linear-gradient(160deg, var(--indigo) 0%, #1a3a4a 100%);
+            border-radius: var(--radius-lg);
+            padding: 22px 24px;
+            color: var(--mist-white);
+            box-shadow: var(--shadow-medium);
+            border: 1px solid rgba(212, 165, 116, 0.25);
+            position: relative;
+            overflow: hidden;
+        }
+        .brand::after {
+            content: "";
+            position: absolute; right: -30px; top: -30px;
+            width: 120px; height: 120px;
+            border-radius: 50%;
+            background: rgba(212, 165, 116, 0.12);
+        }
+        /* 小屏适配 */
+        @media (max-width: 900px) {
+            .layout { flex-direction: column; padding: 14px; gap: 14px; }
+            .side-panel { width: 100%; }
+            .topbar { padding: 10px 14px; }
+            .topbar__sub { display: none; }
+            .author-btn span:not(.caret) { display: none; }
+        }
+        .brand h1 {
+            font-size: 1.5rem; letter-spacing: 0.2em; color: var(--imperial-yellow);
+            margin-bottom: 4px; font-weight: 700; position: relative; z-index: 1;
+        }
+        .brand .brand-sub { font-size: 0.8rem; opacity: 0.8; letter-spacing: 0.08em; position: relative; z-index: 1; }
+        .brand .date-badge {
+            display: inline-block; margin-top: 10px;
+            background: rgba(212, 165, 116, 0.22); border: 1px solid rgba(212, 165, 116, 0.4);
+            padding: 3px 12px; border-radius: 20px; font-size: 0.82rem; letter-spacing: 0.1em;
+            color: var(--imperial-yellow); font-family: 'Noto Sans SC', sans-serif; position: relative; z-index: 1;
+        }
+
+        .panel-card {
+            background: var(--mist-white);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-ink);
+            box-shadow: var(--shadow-soft);
+            padding: 18px;
+        }
+
+        .panel-card__title {
+            font-size: 0.92rem; font-weight: 700; color: var(--indigo);
+            letter-spacing: 0.1em; margin-bottom: 12px;
+            display: flex; align-items: center; gap: 6px;
+            font-family: 'Noto Sans SC', sans-serif;
+        }
+
+        .panel-card__title .ico { font-size: 1rem; }
+
+        .panel-card__desc { font-size: 0.78rem; color: var(--ink-light); margin-bottom: 10px; line-height: 1.6; }
+
+        /* 日期选择 */
+        .date-row { display: flex; gap: 8px; align-items: stretch; }
+        .date-row input {
+            flex: 1; padding: 8px 10px; border: 1px solid var(--border-ink);
+            border-radius: var(--radius-sm); font-family: inherit; font-size: 0.88rem;
+            color: var(--ink-black); background: var(--rice-paper); outline: none;
+        }
+        .date-row input:focus { border-color: var(--verdigris); box-shadow: 0 0 0 2px rgba(95,158,160,0.15); }
+        .date-row button {
+            padding: 8px 14px; border: none; border-radius: var(--radius-sm);
+            background: linear-gradient(180deg, var(--cinnabar), #a52a4a);
+            color: #fff; font-weight: 600; font-size: 0.85rem; cursor: pointer;
+            font-family: inherit; letter-spacing: 0.05em; white-space: nowrap;
+        }
+        .date-row button:hover { filter: brightness(1.1); }
+
+        /* 原始数据区 */
+        #flight-info-display {
+            width: 100%; padding: 10px 12px; box-sizing: border-box;
+            border: 1px solid var(--border-ink); border-radius: var(--radius-sm);
+            font-family: 'Noto Sans SC', sans-serif; font-size: 13px;
+            background: var(--rice-paper); color: var(--ink-black);
+            resize: vertical; line-height: 1.7; outline: none;
+        }
+        #flight-info-display:focus { border-color: var(--verdigris); box-shadow: 0 0 0 2px rgba(95,158,160,0.12); }
+        #flight-info-display::placeholder { color: var(--ink-light); font-size: 12px; }
+
+        .block-actions {
+            display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+            margin-top: 10px;
+        }
+        .flight-status {
+            font-size: 0.78rem; color: var(--ink-light);
+            font-family: 'Noto Sans SC', sans-serif; min-height: 1.2em; flex: 1; min-width: 120px;
+        }
+        .flight-status.success { color: var(--mountain-green); }
+        .flight-status.error { color: var(--cinnabar); }
+        .flight-status.info { color: var(--azurite); }
+
+        /* 机型筛选 */
+        .settings-panel { display: none; margin-top: 12px; }
+        .settings-panel.open { display: block; animation: fadeIn 0.25s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+
+        .type-checkboxes { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+        .type-checkbox {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 5px 11px; background: var(--rice-paper);
+            border: 1px solid var(--border-ink); border-radius: 20px;
+            font-size: 0.82rem; color: var(--indigo); cursor: pointer;
+            font-family: 'Noto Sans SC', sans-serif; transition: all 0.15s; user-select: none;
+        }
+        .type-checkbox:hover { border-color: var(--verdigris); }
+        .type-checkbox input { accent-color: var(--azurite); cursor: pointer; }
+        .type-checkbox:has(input:checked) { background: var(--pale-celadon); border-color: var(--verdigris); font-weight: 600; }
+
+        .settings-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+        .settings-status { font-size: 0.78rem; color: var(--mountain-green); min-height: 1.2em;
+            font-family: 'Noto Sans SC', sans-serif; }
+        .settings-status.error { color: var(--cinnabar); }
+
+        /* 通用按钮 */
+        .btn {
+            padding: 8px 16px; border-radius: var(--radius-sm); font-size: 0.85rem; font-weight: 600;
+            cursor: pointer; font-family: 'Noto Sans SC', sans-serif; border: none;
+            transition: all 0.2s; letter-spacing: 0.03em; white-space: nowrap;
+        }
+        .btn-primary { background: linear-gradient(180deg, var(--verdigris), var(--azurite)); color: #fff; }
+        .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(74,124,140,0.35); }
+        .btn-ghost { background: var(--rice-paper); border: 1px solid var(--border-ink); color: var(--indigo); }
+        .btn-ghost:hover { border-color: var(--verdigris); color: var(--azurite); }
+        .btn-sync {
+            background: linear-gradient(180deg, var(--imperial-yellow), #c0903f); color: #fff;
+            box-shadow: 0 3px 10px rgba(212,165,116,0.4);
+        }
+        .btn-sync:hover { transform: translateY(-1px); filter: brightness(1.05); }
+
+        .link-btn {
+            background: none; border: none; color: var(--azurite); cursor: pointer;
+            font-size: 0.82rem; font-family: 'Noto Sans SC', sans-serif; padding: 0; font-weight: 600;
+        }
+        .link-btn:hover { color: var(--verdigris); text-decoration: underline; }
+
+        /* ---- 右侧内容区 ---- */
+        .main-content { flex: 1; min-width: 0; }
+
+        .section-title {
+            font-size: 1.1rem; font-weight: 700; color: var(--indigo);
+            letter-spacing: 0.12em; margin-bottom: 16px;
+            display: flex; align-items: center; gap: 8px;
+            font-family: 'Noto Sans SC', sans-serif;
+        }
+
+        .results-meta { display: flex; align-items: center; gap: 12px; margin-left: auto; }
+        .count-badge {
+            background: linear-gradient(180deg, var(--cinnabar), #a52a4a); color: #fff;
+            padding: 5px 16px; border-radius: 20px; font-size: 0.85rem; font-weight: 700;
+            font-family: 'Noto Sans SC', sans-serif; letter-spacing: 0.05em;
+        }
+
+        .export-btn {
+            background: linear-gradient(180deg, var(--verdigris), var(--azurite)); color: #fff;
+            border: none; padding: 8px 18px; border-radius: 20px; font-size: 0.85rem; font-weight: 600;
+            cursor: pointer; font-family: 'Noto Sans SC', sans-serif; letter-spacing: 0.05em;
+            transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px;
+        }
+        .export-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(74,124,140,0.35); }
+        .export-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+        .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 20px; }
+
+        .flight-card {
+            background: var(--mist-white); border-radius: var(--radius-md);
+            box-shadow: var(--shadow-soft); border: 1px solid var(--border-ink);
+            overflow: hidden; transition: all 0.3s; display: flex; flex-direction: column;
+        }
+        .flight-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-medium); border-color: var(--verdigris); }
+
+        .flight-card__head {
+            padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; gap: 10px;
+            background: linear-gradient(180deg, var(--pale-celadon), var(--mist-white));
+            border-bottom: 1px solid var(--border-ink);
+        }
+        .flight-card__head .flight-no { font-size: 1.15rem; font-weight: 800; letter-spacing: 0.03em; font-family: 'Noto Sans SC', sans-serif; }
+        .flight-card__head .aircraft-type {
+            background: rgba(156,141,122,0.15); padding: 3px 10px; border-radius: var(--radius-sm);
+            font-size: 0.8rem; font-weight: 600; color: var(--ink-gray);
+            font-family: 'Noto Sans SC', sans-serif; border: 1px solid var(--border-ink);
+        }
+        .flight-card__body { padding: 16px 18px; display: flex; gap: 16px; align-items: center; flex: 1; }
+        .flight-details { flex: 1; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+        .detail-row { display: flex; align-items: baseline; gap: 8px; font-size: 0.88rem; color: var(--ink-gray); font-family: 'Noto Sans SC', sans-serif; }
+        .detail-label { color: var(--ink-light); font-size: 0.78rem; min-width: 36px; flex-shrink: 0; }
+        .detail-value { font-weight: 600; color: var(--ink-black); word-break: break-all; }
+        .livery-tag {
+            display: inline-flex; align-items: center; gap: 5px;
+            background: rgba(90,138,110,0.12); color: var(--mountain-green);
+            border: 1px solid rgba(90,138,110,0.3); padding: 4px 12px;
+            border-radius: 20px; font-size: 0.78rem; font-weight: 600;
+            width: fit-content; margin-top: 4px; font-family: 'Noto Sans SC', sans-serif;
+        }
+        .flight-thumb {
+            width: 130px; height: 88px; border-radius: var(--radius-sm); overflow: hidden;
+            background: var(--scroll-beige); border: 1px solid var(--border-ink); flex-shrink: 0;
+        }
+        .flight-thumb img { width: 100%; height: 100%; object-fit: cover; }
+        .no-image { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 0.72rem; color: var(--ink-light); text-align: center; padding: 6px; font-style: italic; }
+
+        .empty-state {
+            text-align: center; padding: 50px 20px; color: var(--ink-gray);
+            background: var(--mist-white); border-radius: var(--radius-md);
+            box-shadow: var(--shadow-soft); border: 2px dashed var(--border-ink);
+            grid-column: 1 / -1;
+        }
+        .empty-state .empty-ico { font-size: 2.5rem; opacity: 0.35; margin-bottom: 12px; }
+        .empty-state .empty-title { font-size: 1rem; font-weight: 700; color: var(--indigo); margin-bottom: 6px; letter-spacing: 0.08em; }
+        .empty-state .empty-desc { font-size: 0.85rem; color: var(--ink-light); }
+
+        .toast {
+            position: fixed; bottom: 28px; right: 28px; z-index: 9999;
+            background: var(--indigo); color: #fff; padding: 14px 24px;
+            border-radius: var(--radius-md); box-shadow: var(--shadow-medium);
+            font-weight: 600; font-size: 0.88rem; font-family: 'Noto Sans SC', sans-serif;
+            letter-spacing: 0.05em; opacity: 0; transform: translateY(16px);
+            transition: all 0.35s; pointer-events: none;
+        }
+        .toast.show { opacity: 1; transform: translateY(0); }
+
+        /* 导出容器（隐藏） */
+        #exportWrapper { position: fixed; left: -9999px; top: 0; }
+        .export-container {
+            background: var(--rice-paper); padding: 50px; border-radius: var(--radius-lg);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.15); width: 1200px;
+        }
+        .export-header { text-align: center; margin-bottom: 32px; padding-bottom: 24px; border-bottom: 3px double var(--border-ink); }
+        .export-title { font-size: 2.4rem; color: var(--indigo); font-weight: 700; letter-spacing: 0.3em; margin-bottom: 10px; }
+        .export-subtitle { font-size: 0.95rem; color: var(--ink-gray); letter-spacing: 0.15em; }
+        .export-date {
+            display: inline-block; background: var(--pale-celadon); padding: 6px 20px;
+            border-radius: 20px; margin-top: 14px; font-size: 1rem; color: var(--azurite);
+            font-weight: 600; border: 1px solid var(--verdigris);
+            font-family: 'Noto Sans SC', sans-serif;
+        }
+        .export-footer {
+            text-align: center; margin-top: 32px; padding-top: 24px;
+            border-top: 1px solid var(--border-ink); color: var(--ink-light);
+            font-size: 0.85rem; letter-spacing: 0.12em;
+        }
+        #exportCardsContainer { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+
+        .hide-for-screenshot { display: none !important; }
+        .screenshot-only { display: none; }
+
+        @media (max-width: 860px) {
+            .layout { flex-direction: column; padding: 14px; }
+            .side-panel { width: 100%; }
+            .side-panel__inner { position: static; }
+            .cards-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+<base target="_blank">
+</head>
+<body>
+
+<!-- ============================================== -->
+<!-- 登录界面（最上层遮罩） -->
+<!-- ============================================== -->
+<div id="login-overlay">
+    <div class="login-card">
+        <div class="login-header">
+            <span class="logo-icon">✈️</span>
+            <h2 id="login-title">二流人预警</h2>
+            <p>请登录后使用系统</p>
+        </div>
+        <div class="login-form" id="login-form">
+            <input type="email" id="login-email" placeholder="邮箱地址" autocomplete="email">
+            <input type="password" id="login-password" placeholder="密码（至少6位）" autocomplete="current-password">
+            <div class="login-msg" id="login-message"></div>
+            <button type="button" class="login-btn" id="login-submit" onclick="return handleAuth()">登录</button>
+            <button type="button" class="login-toggle" id="login-toggle" onclick="return toggleMode()">没有账号？去注册</button>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================== -->
+<!-- 主应用：左侧面板 + 右侧内容 -->
+<!-- ============================================== -->
+<div id="app-content" style="display:none;">
+
+    <!-- ==================== 固定顶部栏 ==================== -->
+    <header id="topbar" class="topbar" style="display:none;">
+        <div class="topbar__brand">
+            <span class="topbar__logo">✈️</span>
+            <div class="topbar__title-wrap">
+                <span class="topbar__title">二流人预警</span>
+                <span class="topbar__sub">juanxukuai_77 · 航班彩绘识别</span>
+            </div>
+        </div>
+
+        <div class="topbar__actions">
+            <div class="author-dropdown">
+                <button class="author-btn" onclick="return toggleAuthorMenu()">关于作者 <span class="caret">▾</span></button>
+                <div class="author-menu" id="authorMenu">
+                    <a href="https://xhslink.cn/o/7Lb3ao1166Q" target="_blank" rel="noopener noreferrer" onclick="return closeAuthorMenu()">
+                        <span class="author-icon">📕</span> 小红书
+                    </a>
+                    <a href="https://b23.tv/JzeTBk4" target="_blank" rel="noopener noreferrer" onclick="return closeAuthorMenu()">
+                        <span class="author-icon">📺</span> 哔哩哔哩
+                    </a>
+                </div>
+            </div>
+
+            <button id="admin-announce-btn" class="admin-announce-btn" onclick="return openAnnounceEditor()" style="display:none;">
+                📢 公告
+            </button>
+
+            <button class="user-avatar-btn" id="userAvatarBtn" onclick="return openProfile()" title="个人中心" aria-label="个人中心">
+                <svg class="avatar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="12" cy="8.5" r="4"></circle>
+                    <path d="M4.5 20.5c1.4-4 4.3-6 7.5-6s6.1 2 7.5 6"></path>
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <div class="layout">
+        <!-- ============ 左侧工具面板 ============ -->
+        <aside class="side-panel">
+            <div class="side-panel__inner">
+
+                <!-- 品牌 / 标题 -->
+                <div class="brand">
+                    <h1>二流人预警</h1>
+                    <div class="brand-sub">juanxukuai_77 · 专业航班彩绘识别</div>
+                    <span class="date-badge" id="dateDisplay">20260918</span>
+                </div>
+
+                <!-- 日期选择 -->
+                <div class="panel-card">
+                    <div class="panel-card__title"><span class="ico">📅</span> 选择日期</div>
+                    <div class="date-row">
+                        <input type="date" id="datePicker">
+                        <button id="confirmDateBtn">确认</button>
+                    </div>
+                </div>
+
+                <!-- 原始数据区（所有人共用同一框，管理员点同步才推送） -->
+                <div class="panel-card">
+                    <div class="panel-card__title"><span class="ico">📋</span> 原始数据</div>
+                    <p class="panel-card__desc">在此粘贴航班原始数据，识别结果会实时预览。</p>
+                    <textarea id="flight-info-display" rows="6" placeholder="格式示例：CA1234 B1234 B737 14:30"></textarea>
+                    <div class="block-actions">
+                        <button class="btn btn-ghost" onclick="return saveFlightLocal()">💾 保存本地</button>
+                        <button id="sync-btn" class="btn btn-sync" onclick="return syncFlightData()" style="display:none;">
+                            🚀 同步给所有用户
+                        </button>
+                        <span class="flight-status" id="flight-status"></span>
+                    </div>
+                </div>
+
+                <!-- 机型筛选 -->
+                <div class="panel-card">
+                    <div class="panel-card__title"><span class="ico">⚙️</span> 机型筛选</div>
+                    <p class="panel-card__desc">从默认机型列表勾选，<b>只输出你勾选的机型</b>（彩绘规则不受影响）。</p>
+                    <button class="link-btn" onclick="return toggleSettings()">
+                        <span id="settingsToggleText">展开</span>筛选面板 ▾
+                    </button>
+                    <div class="settings-panel" id="settingsPanel">
+                        <div class="settings-actions">
+                            <button class="btn btn-ghost" onclick="return selectAllTypes()">全选</button>
+                            <button class="btn btn-ghost" onclick="return selectNoneTypes()">全不选</button>
+                            <button class="btn btn-primary" onclick="return saveSelectedTypes()">保存并应用</button>
+                        </div>
+                        <div class="type-checkboxes" id="typeCheckboxes"></div>
+                        <div class="settings-status" id="settingsStatus"></div>
+                    </div>
+                </div>
+
+            </div>
+        </aside>
+
+        <!-- ============ 右侧内容区 ============ -->
+        <main class="main-content">
+            <div class="panel-card">
+                <div class="section-title">
+                    ✈️ 航班彩绘识别结果
+                    <div class="results-meta">
+                        <span id="resultCount" class="count-badge">0 条</span>
+                        <button id="exportImageBtn" class="export-btn" disabled>🖼️ 导出图片</button>
+                    </div>
+                </div>
+                <div id="cardsContainer" class="cards-grid">
+                    <div class="empty-state">
+                        <div class="empty-ico">📭</div>
+                        <div class="empty-title">暂无匹配的航班数据</div>
+                        <div class="empty-desc">请在左侧“原始数据”区粘贴航班数据</div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 导出专用容器 -->
+    <div id="exportWrapper">
+        <div class="export-container" id="exportContent">
+            <div class="export-header">
+                <div class="export-title">二流人预警系统</div>
+                <div class="export-subtitle">专业航班彩绘识别 · juanxukuai_77</div>
+                <div class="export-date" id="exportDate">2026年09月18日</div>
+            </div>
+            <div id="exportCardsContainer"></div>
+            <div class="export-footer">Powered by juanxukuai_77</div>
+        </div>
+    </div>
+
+</div><!-- /app-content -->
+
+<!-- ============================================== -->
+<!-- 弹层：个人中心 / 公告 -->
+<!-- ============================================== -->
+<div id="profileOverlay" style="display:none;">
+    <div class="profile-card">
+        <button class="profile-close" onclick="return closeProfile()">✕</button>
+        <h2>个人中心</h2>
+        <div class="profile-section">
+            <label>邮箱</label>
+            <input type="email" id="profileEmail" disabled>
+        </div>
+        <div class="profile-section">
+            <label>修改密码</label>
+            <input type="password" id="profileNewPassword" placeholder="新密码（至少6位）">
+            <button class="btn btn-primary" onclick="return updatePassword()">更新密码</button>
+            <div class="profile-msg" id="profileMsg"></div>
+        </div>
+        <button class="logout-full-btn" onclick="return logout()">退出登录</button>
+    </div>
+</div>
+
+<div id="daily-announce" style="display:none;">
+    <div class="announce-overlay"></div>
+    <div class="announce-card">
+        <div class="announce-badge">📢 公告</div>
+        <div class="announce-body" id="daily-announce-text"></div>
+        <button class="btn btn-primary announce-ok" onclick="return closeDailyAnnounce()">我知道了</button>
+    </div>
+</div>
+
+<div id="announce-editor" style="display:none;">
+    <div class="announce-editor-card">
+        <button class="announce-close" onclick="return closeAnnounceEditor()">✕</button>
+        <h3>编辑全局公告</h3>
+        <p class="panel-card__desc">填了内容 → 所有用户每日首次登录会弹出；留空 → 不弹。</p>
+        <textarea id="announce-input" rows="5" placeholder="例如：2026-05-04 新增 C919 彩绘识别！"></textarea>
+        <div class="announce-editor-actions">
+            <button class="btn btn-ghost" onclick="return closeAnnounceEditor()">取消</button>
+            <button class="btn btn-primary" onclick="return saveAnnouncement()">保存并生效</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===== 业务逻辑 ===== -->
+<script src="https://cdn.bootcdn.net/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script>
+    // ==============================================
+    // 数据配置
+    // ==============================================
+    const TAIL_LIVERY_CONFIG = `
+B6719 云南号
+B5960 长虹号
+B8601 五彩凉山·和美昭觉
+B8690 四川银行
+B308F 双流壹号
+B6388 中华龙号
+B8468 2025年第十二届世界运动会
+B8962 2025年第十二届世界运动会
+B6447 成都大运会
+B5945 成都大运会
+B304V 成都大运会
+B5929 五粮液号
+B8603 五粮液号
+B8438 五粮液号
+B302T 五粮液号
+B301D 熊猫之路
+B306N 熊猫之路
+B325J 熊猫之路
+B32AG 熊猫之路
+B32F8 熊猫之路
+B32G2 熊猫之路
+B32G6 熊猫之路
+B5598 东盟博览会
+B5940 进博会
+B1832 海南国际电影节
+B2007 上海世技赛
+B1979 老家河南
+B1625 消博会
+B1700 青春珠海
+B1781 活力珠海
+B7996 新疆和田乡村振兴号
+B1168 第787架B787
+B657X 传祺向往
+B6068 贵州号
+B6069 贵州号
+B308T 活力湾区号
+B658W 活力湾区号
+B5211 无小翼
+B5214 牡丹号(太极棕)
+B6071 锦礼号
+B5390 牡丹号(香槟金)
+B5198 牡丹号(鹅蛋黄)
+B5422 凤凰(国航第50架B738)
+B2006 爱中国
+B5977 国航第50架A330
+B6383 星空联盟
+B5425 星空联盟
+B5497 星空联盟
+B2032 星空联盟
+B5912 星空联盟
+B308M 星空联盟
+B6101 星空联盟
+B6361 秀美四川
+B6365 秀美四川
+B1866 潮起萧山号
+B1867 如意号
+B1868 飞天号
+B8146 Hello 5G号
+B8433 我爱浙疆号
+B8451 奔竞萧山号
+B8452 浙江·阿克苏号
+B8560 长白山号
+B8593 蒙娜丽莎号
+B8895 泡泡玛特城市乐园号
+B1077 小百花
+B1079 原始森林灵芝孢子粉
+B1078 阿拉尔号
+B305V 飞猪号
+B30A5 嵊州小笼包号
+B30FV 长龙第50架A320
+B329R 亚运火炬号
+B329Q 亚运火炬号
+B327C 诗画江南 活力浙江号
+B328X 诗画江南 活力浙江号
+B307G 娃哈哈·2022杭州亚运会赞助商
+B309N 娃哈哈·2022杭州亚运会赞助商
+B8985 浙商银行号
+B325X 浙商银行号
+B8145 亚运吉祥物号
+B8147 亚运吉祥物号
+B8148 亚运吉祥物号
+B8335 亚运吉祥物号
+B8453 亚运吉祥物号
+B1673 亚运口号号
+B1675 亚运口号号
+B1676 亚运口号号
+B8336 亚运口号号
+B8243 亚运口号号
+B6296 星空联盟
+B6297 星空联盟
+B1757 星空联盟
+B1758 星空联盟
+B1017 深圳号
+B1008 林芝桃花号
+B652G 越捷航空混合涂装
+B656E 越捷航空混合涂装
+B603P 中国梦
+B3211 中国梦
+B3271 中国梦
+B8960 多彩贵州
+B6922 大理号
+B6996 三晋吉祥号
+B1103 北京2022
+B6298 冬奥冰雪号
+B1086 冬奥冰雪号
+B6960 冬奥冰雪号
+B305Y 冬奥冰雪号
+B307T 冬奥冰雪号
+B320V 冬奥冰雪号
+B326E 冬奥冰雪号
+B6730 冬奥冰雪号
+B6741 冬奥冰雪号
+B30EZ 冬奥冰雪号
+B30FG 冬奥冰雪号
+B30ER 冬奥冰雪号
+B322S 冬奥冰雪号
+B302V 冬奥冰雪号
+B30AH 冬奥冰雪号
+B30CA 冬奥冰雪号
+B30CC 冬奥冰雪号
+B30CE 冬奥冰雪号
+B30CF 冬奥冰雪号
+B30CG 冬奥冰雪号
+B30CH 冬奥冰雪号
+B30CJ 冬奥冰雪号
+B30CK 冬奥冰雪号
+B30CL 冬奥冰雪号
+B30CM 冬奥冰雪号
+B30CN 冬奥冰雪号
+B30CP 冬奥冰雪号
+B30CQ 冬奥冰雪号
+B30CR 冬奥冰雪号
+B30CS 冬奥冰雪号
+B30CT 冬奥冰雪号
+B30CU 冬奥冰雪号
+B30CV 冬奥冰雪号
+B30CW 冬奥冰雪号
+B30CX 冬奥冰雪号
+B30CY 冬奥冰雪号
+B30CZ 冬奥冰雪号
+B30D0 冬奥冰雪号
+B30D1 冬奥冰雪号
+B30D2 冬奥冰雪号
+B30D3 冬奥冰雪号
+B30D4 冬奥冰雪号
+B30D5 冬奥冰雪号
+B30D6 冬奥冰雪号
+B30D7 冬奥冰雪号
+B30D8 冬奥冰雪号
+B30D9 冬奥冰雪号
+B30DA 冬奥冰雪号
+B30DB 冬奥冰雪号
+B30DC 冬奥冰雪号
+B30DD 冬奥冰雪号
+B30DE 冬奥冰雪号
+B30DF 冬奥冰雪号
+B30DG 冬奥冰雪号
+B30DH 冬奥冰雪号
+B30DJ 冬奥冰雪号
+B30DK 冬奥冰雪号
+B30DL 冬奥冰雪号
+B30DM 冬奥冰雪号
+B30DN 冬奥冰雪号
+B30DP 冬奥冰雪号
+B30DQ 冬奥冰雪号
+B30DR 冬奥冰雪号
+B30DS 冬奥冰雪号
+B30DT 冬奥冰雪号
+B30DU 冬奥冰雪号
+B30DV 冬奥冰雪号
+B30DW 冬奥冰雪号
+B30DX 冬奥冰雪号
+B30DY 冬奥冰雪号
+B30DZ 冬奥冰雪号
+B306H 牡丹号(中国红)
+B301S 五星红旗
+B301N 中国梦
+B301G 建党百年
+B301H 建党百年
+B301J 建党百年
+B301K 建党百年
+B301L 建党百年
+B301M 建党百年
+B301P 建党百年
+B301Q 建党百年
+B301R 建党百年
+B301T 建党百年
+B301U 建党百年
+B302A 建党百年
+B302B 建党百年
+B302C 建党百年
+B302D 建党百年
+B302E 建党百年
+B302F 建党百年
+B302G 建党百年
+B302H 建党百年
+B302J 建党百年
+B302K 建党百年
+B302L 建党百年
+B302M 建党百年
+B302N 建党百年
+B302P 建党百年
+B302Q 建党百年
+B302R 建党百年
+B302S 建党百年
+B302T 建党百年
+B303A 建党百年
+B303B 建党百年
+B303C 建党百年
+B303D 建党百年
+B303E 建党百年
+B303F 建党百年
+B303G 建党百年
+B303H 建党百年
+B303J 建党百年
+B303K 建党百年
+`.trim();
+
+    const AIRCRAFT_TYPE_CONFIG = `
+B737
+B738
+B739
+B752
+B753
+B763
+B764
+B772
+B773
+B77W
+B788
+B789
+B78X
+A319
+A320
+A321
+A332
+A333
+A359
+A35K
+A388
+C919
+`.trim();
+
+    // 导出默认机型列表
+    window.DEFAULT_AIRCRAFT_TYPES = AIRCRAFT_TYPE_CONFIG.split('\n')
+      .map(s => s.trim().toUpperCase()).filter(Boolean);
+
+    // 导出彩绘配置
+    window.TAIL_LIVERY_MAP = (() => {
+        const map = {};
+        TAIL_LIVERY_CONFIG.split('\n').forEach(line => {
+            const parts = line.trim().split(/\s+/);
+            if (parts.length >= 2) {
+                const tail = parts[0].toUpperCase();
+                const name = parts.slice(1).join(' ');
+                map[tail] = name;
+            }
+        });
+        return map;
+    })();
+
+    let tailLiveryMap = new Map();
+    let currentResults = [];
+
+    const dataInput = document.getElementById('flight-info-display');
+    const cardsContainer = document.getElementById('cardsContainer');
+    const resultCount = document.getElementById('resultCount');
+    const exportImageBtn = document.getElementById('exportImageBtn');
+    const datePicker = document.getElementById('datePicker');
+    const confirmDateBtn = document.getElementById('confirmDateBtn');
+    const dateDisplay = document.getElementById('dateDisplay');
+    const toast = document.getElementById('toast');
+    const exportWrapper = document.getElementById('exportWrapper');
+    const exportContent = document.getElementById('exportContent');
+    const exportCardsContainer = document.getElementById('exportCardsContainer');
+    const exportDate = document.getElementById('exportDate');
+
+    let currentSelectedDate;
+
+    function initDefaultDate() {
+        const currentDate = new Date();
+        currentDate.setDate(currentDate.getDate() + 1);
+        currentSelectedDate = currentDate;
+        updateDateDisplay(currentSelectedDate);
+        const yyyy = currentDate.getFullYear();
+        const mm = String(currentDate.getMonth() + 1).padStart(2, '0');
+        const dd = String(currentDate.getDate()).padStart(2, '0');
+        datePicker.value = `${yyyy}-${mm}-${dd}`;
+    }
+
+    function updateDateDisplay(date) {
+        const formattedDate = `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}${String(date.getDate()).padStart(2, '0')}`;
+        dateDisplay.textContent = formattedDate;
+        const year = date.getFullYear();
+        const month = date.getMonth() + 1;
+        const day = date.getDate();
+        exportDate.textContent = `${year}年${String(month).padStart(2, '0')}月${String(day).padStart(2, '0')}日`;
+        window.exportFileName = `二流人预警${formattedDate}.png`;
+    }
+
+    confirmDateBtn.addEventListener('click', () => {
+        if (!datePicker.value) { showToast('请选择日期！'); return; }
+        const selectedDate = new Date(datePicker.value);
+        if (isNaN(selectedDate.getTime())) { showToast('日期格式错误！'); return; }
+        currentSelectedDate = selectedDate;
+        updateDateDisplay(selectedDate);
+        showToast(`日期已更新：${datePicker.value}`);
+    });
+
+    function showToast(message) {
+        toast.textContent = message;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 2500);
+    }
+
+    // 供 auth.js 调用：原始数据变化时重新识别
+    function processData() {
+        const text = (dataInput.value || '').trim();
+        if (!text) {
+            renderCards([]);
+            return;
+        }
+
+        // 解析原始数据
+        const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+        const results = [];
+        const selectedTypes = window.userAircraftTypes; // 来自 auth.js
+
+        lines.forEach(line => {
+            const parts = line.split(/\s+/);
+            if (parts.length < 3) return;
+            const flightNo = parts[0];
+            const tail = parts[1].toUpperCase();
+            const type = (parts[2] || '').toUpperCase();
+            const time = parts[3] || '';
+
+            // 机型筛选
+            if (selectedTypes && selectedTypes.length > 0 && !selectedTypes.includes(type)) return;
+
+            const livery = tailLiveryMap.get(tail) || '';
+            results.push({ flightNo, tail, type, time, livery });
+        });
+
+        renderCards(results);
+    }
+    window.processData = processData;
+
+    function renderCards(results) {
+        currentResults = results;
+        resultCount.textContent = `${results.length} 条`;
+        exportImageBtn.disabled = results.length === 0;
+
+        if (results.length === 0) {
+            cardsContainer.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-ico">📭</div>
+                    <div class="empty-title">暂无匹配的航班数据</div>
+                    <div class="empty-desc">请检查原始数据格式或机型筛选设置</div>
+                </div>`;
+            return;
+        }
+
+        cardsContainer.innerHTML = results.map(item => {
+            const liveryHtml = item.livery
+                ? `<span class="livery-tag">🎨 ${item.livery}</span>`
+                : `<span class="livery-tag" style="background:rgba(138,138,138,0.12);color:#8a8a8a;border-color:#d4cfc7;">⬜ 无特殊彩绘</span>`;
+
+            const tailNum = item.tail.replace(/^B/, '');
+            const imgSrc = `images/${tailNum}.png`;
+            const imgHtml = `<img src="${imgSrc}" alt="${item.tail}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                             <div class="no-image" style="display:none;">暂无图片<br>${item.tail}</div>`;
+
+            return `
+                <div class="flight-card">
+                    <div class="flight-card__head">
+                        <span class="flight-no">${item.flightNo}</span>
+                        <span class="aircraft-type">${item.type}</span>
+                    </div>
+                    <div class="flight-card__body">
+                        <div class="flight-details">
+                            <div class="detail-row"><span class="detail-label">机尾</span><span class="detail-value">${item.tail}</span></div>
+                            <div class="detail-row"><span class="detail-label">时间</span><span class="detail-value">${item.time || '—'}</span></div>
+                            ${liveryHtml}
+                        </div>
+                        <div class="flight-thumb">${imgHtml}</div>
+                    </div>
+                </div>`;
+        }).join('');
+    }
+
+    // 导出图片
+    exportImageBtn.addEventListener('click', () => {
+        if (currentResults.length === 0) return;
+
+        // 准备导出容器内容
+        exportCardsContainer.innerHTML = currentResults.map(item => {
+            const liveryHtml = item.livery
+                ? `<span class="livery-tag">🎨 ${item.livery}</span>`
+                : `<span class="livery-tag" style="background:rgba(138,138,138,0.12);color:#8a8a8a;border-color:#d4cfc7;">⬜ 无特殊彩绘</span>`;
+            const tailNum = item.tail.replace(/^B/, '');
+            const imgSrc = `images/${tailNum}.png`;
+            return `
+                <div class="flight-card">
+                    <div class="flight-card__head">
+                        <span class="flight-no">${item.flightNo}</span>
+                        <span class="aircraft-type">${item.type}</span>
+                    </div>
+                    <div class="flight-card__body">
+                        <div class="flight-details">
+                            <div class="detail-row"><span class="detail-label">机尾</span><span class="detail-value">${item.tail}</span></div>
+                            <div class="detail-row"><span class="detail-label">时间</span><span class="detail-value">${item.time || '—'}</span></div>
+                            ${liveryHtml}
+                        </div>
+                        <div class="flight-thumb"><img src="${imgSrc}" alt="${item.tail}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"><div class="no-image" style="display:none;">暂无图片<br>${item.tail}</div></div>
+                    </div>
+                </div>`;
+        }).join('');
+
+        exportWrapper.classList.remove('screenshot-only');
+        exportWrapper.style.position = 'static';
+        exportWrapper.style.left = '0';
+
+        html2canvas(exportContent, { scale: 2, backgroundColor: '#f2efe9' }).then(canvas => {
+            exportWrapper.style.position = 'fixed';
+            exportWrapper.style.left = '-9999px';
+            exportWrapper.classList.add('screenshot-only');
+
+            const link = document.createElement('a');
+            link.download = window.exportFileName || '二流人预警.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        });
+    });
+
+    // 初始化
+    tailLiveryMap = new Map(
+        Object.entries(window.TAIL_LIVERY_MAP || {})
+    );
+    initDefaultDate();
+
+    // 监听原始数据变化 → 自动识别
+    dataInput.addEventListener('input', () => {
+        clearTimeout(dataInput._timer);
+        dataInput._timer = setTimeout(() => processData(), 400);
+    });
+
+    // 供外部调用：刷新结果（auth.js 登录/同步后调用）
+    window.refreshResults = () => processData();
+</script>
+
+</body>
+</html>
