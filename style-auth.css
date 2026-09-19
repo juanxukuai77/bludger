@@ -1,0 +1,681 @@
+/* ==============================================
+   style-auth.css —— 登录界面 UI + 机型设置面板
+   ============================================== */
+
+/* ============ 登录遮罩（国画风）============ */
+#login-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* 青绿山水渐变背景 */
+  background:
+    radial-gradient(circle at 20% 30%, rgba(95, 158, 160, 0.18) 0%, transparent 50%),
+    radial-gradient(circle at 80% 70%, rgba(90, 138, 110, 0.18) 0%, transparent 50%),
+    linear-gradient(135deg, #1a3a4a 0%, #2c4f66 60%, #1a3a4a 100%);
+  font-family: 'Noto Sans SC', 'PingFang SC', sans-serif;
+  padding: 16px;
+}
+
+/* 宣纸质感登录卡 */
+.login-card {
+  width: 100%;
+  max-width: 400px;
+  padding: 40px 36px 32px;
+  background: #f7f5f0;
+  border-radius: 14px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(212, 165, 116, 0.4);
+  position: relative;
+  animation: cardIn 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(24px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* 内边框（卷轴感） */
+.login-card::before {
+  content: "";
+  position: absolute;
+  top: 8px; left: 8px; right: 8px; bottom: 8px;
+  border: 1px solid rgba(156, 141, 122, 0.18);
+  border-radius: 8px;
+  pointer-events: none;
+}
+
+.login-header {
+  text-align: center;
+  margin-bottom: 28px;
+  position: relative;
+}
+
+.login-header h2 {
+  margin: 0 0 6px;
+  font-size: 1.7rem;
+  color: #2c4f66;
+  letter-spacing: 0.18em;
+  font-weight: 800;
+}
+
+.login-header .logo-icon {
+  font-size: 2.2rem;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.login-header p {
+  margin: 0;
+  font-size: 0.82rem;
+  color: #8a8a8a;
+  letter-spacing: 0.08em;
+}
+
+.login-form { position: relative; }
+
+.login-form input {
+  width: 100%;
+  padding: 11px 14px;
+  margin-bottom: 14px;
+  border: 1px solid #d4cfc7;
+  border-radius: 9px;
+  font-size: 0.95rem;
+  background: #faf8f3;
+  color: #1a1a1a;
+  box-sizing: border-box;
+  outline: none;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.login-form input:focus {
+  border-color: #5f9ea0;
+  box-shadow: 0 0 0 3px rgba(95, 158, 160, 0.15);
+  background: #fff;
+}
+
+.login-btn {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 9px;
+  background: linear-gradient(180deg, #5f9ea0, #4a7c8c);
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  cursor: pointer;
+  transition: all 0.25s;
+  font-family: inherit;
+}
+
+.login-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 18px rgba(74, 124, 140, 0.4); }
+.login-btn:active { transform: translateY(0); }
+
+.login-toggle {
+  width: 100%;
+  margin-top: 6px;
+  padding: 8px;
+  border: none;
+  background: transparent;
+  color: #4a7c8c;
+  font-size: 0.85rem;
+  cursor: pointer;
+  font-family: inherit;
+}
+.login-toggle:hover { color: #2c4f66; text-decoration: underline; }
+
+.login-msg {
+  min-height: 1.2em;
+  margin: -4px 0 10px;
+  text-align: center;
+  font-size: 0.82rem;
+  color: #8a8a8a;
+}
+.login-msg.error   { color: #c93756; }
+.login-msg.success { color: #3d6b4f; }
+
+/* ============ 退出按钮 ============ */
+#logoutBtn {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 9999;
+  padding: 8px 16px;
+  background: rgba(255,255,255,0.92);
+  border: 1px solid #d4cfc7;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  color: #2c4f66;
+  font-family: inherit;
+}
+#logoutBtn:hover { border-color: #c93756; color: #c93756; }
+
+/* ============ 机型设置面板 ============ */
+.settings-btn {
+  background: linear-gradient(180deg, #d4a574, #b8935a);
+  color: #fff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  letter-spacing: 0.05em;
+  font-family: inherit;
+}
+.settings-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(212, 165, 116, 0.4); }
+
+.settings-panel {
+  display: none;
+  margin: 16px 0 24px;
+  padding: 20px 24px;
+  background: #f7f5f0;
+  border: 1px solid #d4cfc7;
+  border-radius: 12px;
+  box-shadow: var(--shadow-soft, 0 4px 20px rgba(0,0,0,0.08));
+}
+
+.settings-panel.open { display: block; animation: cardIn 0.3s; }
+
+.settings-panel h3 {
+  margin: 0 0 6px;
+  color: #2c4f66;
+  font-size: 1.05rem;
+  letter-spacing: 0.08em;
+}
+
+.settings-panel .desc {
+  margin: 0 0 16px;
+  font-size: 0.82rem;
+  color: #8a8a8a;
+}
+
+.settings-add {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.settings-add input {
+  flex: 1;
+  padding: 9px 12px;
+  border: 1px solid #d4cfc7;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  outline: none;
+  background: #faf8f3;
+}
+.settings-add input:focus { border-color: #5f9ea0; }
+
+.settings-add button {
+  padding: 9px 18px;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #5f9ea0, #4a7c8c);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.type-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.type-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  background: #e8f4f0;
+  border: 1px solid #c8e0db;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  color: #2c4f66;
+  font-family: 'Noto Sans SC', sans-serif;
+}
+
+.type-tag .del {
+  cursor: pointer;
+  color: #c93756;
+  font-weight: 700;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.type-tags-empty {
+  font-size: 0.82rem;
+  color: #8a8a8a;
+  font-style: italic;
+}
+
+.settings-status {
+  margin-top: 12px;
+  font-size: 0.8rem;
+  color: #3d6b4f;
+  min-height: 1.2em;
+}
+.settings-status.error { color: #c93756; }
+
+/* ============ 操作按钮 ============ */
+.settings-actions {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.primary-btn {
+  padding: 9px 18px;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #5f9ea0, #4a7c8c);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.9rem;
+}
+.primary-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(74, 124, 140, 0.35); }
+
+.ghost-btn {
+  padding: 9px 18px;
+  border: 1px solid #d4cfc7;
+  border-radius: 8px;
+  background: #faf8f3;
+  color: #2c4f66;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.9rem;
+}
+.ghost-btn:hover { border-color: #5f9ea0; color: #4a7c8c; }
+
+/* ============ 机型勾选框（从默认列表里选择）============ */
+.type-checkboxes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.type-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  background: #faf8f3;
+  border: 1px solid #d4cfc7;
+  border-radius: 20px;
+  font-size: 0.88rem;
+  color: #2c4f66;
+  cursor: pointer;
+  font-family: 'Noto Sans SC', sans-serif;
+  transition: all 0.15s;
+}
+.type-checkbox:hover { border-color: #5f9ea0; }
+.type-checkbox input { cursor: pointer; accent-color: #4a7c8c; }
+.type-checkbox:has(input:checked) {
+  background: #e8f4f0;
+  border-color: #5f9ea0;
+  font-weight: 600;
+}
+
+/* ============ 固定顶部栏 ============ */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 22px;
+  background: linear-gradient(135deg, #2c4f66 0%, #1a3a4a 100%);
+  border-bottom: 1px solid rgba(212, 165, 116, 0.35);
+  box-shadow: 0 2px 14px rgba(0, 0, 0, 0.12);
+}
+.topbar__brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.topbar__logo {
+  font-size: 1.35rem;
+  width: 40px; height: 40px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: rgba(212, 165, 116, 0.2);
+  border: 1px solid rgba(212, 165, 116, 0.4);
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+.topbar__title-wrap { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; }
+.topbar__title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #f7f5f0;
+  letter-spacing: 0.14em;
+  white-space: nowrap;
+}
+.topbar__sub {
+  font-size: 0.72rem;
+  color: rgba(247, 245, 240, 0.65);
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.topbar__actions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+
+/* ============ 简笔人头像按钮 ============ */
+.user-avatar-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.85);
+  background: linear-gradient(135deg, #5f9ea0, #4a7c8c);
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s, box-shadow 0.2s;
+  padding: 0;
+}
+.user-avatar-btn:hover { transform: scale(1.07); box-shadow: 0 4px 16px rgba(0,0,0,0.3); }
+.avatar-icon { width: 22px; height: 22px; }
+
+/* ============ 关于作者 下拉按钮 ============ */
+.author-btn {
+  padding: 0 16px;
+  height: 40px;
+  border: 1px solid rgba(255,255,255,0.35);
+  border-radius: 20px;
+  background: rgba(255,255,255,0.08);
+  color: #f7f5f0;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: background 0.2s, border-color 0.2s;
+}
+.author-btn:hover { background: rgba(255,255,255,0.18); border-color: rgba(255,255,255,0.6); }
+.author-btn .caret { font-size: 0.72rem; opacity: 0.8; }
+
+/* ============ 管理员公告按钮 ============ */
+.admin-announce-btn {
+  padding: 0 16px;
+  height: 40px;
+  border: 1px solid rgba(245, 158, 11, 0.6);
+  border-radius: 20px;
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #fff;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  box-shadow: 0 2px 10px rgba(217, 119, 6, 0.35);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.admin-announce-btn:hover { transform: scale(1.05); box-shadow: 0 4px 16px rgba(217, 119, 6, 0.5); }
+
+/* ============ 关于作者 下拉菜单 ============ */
+.author-dropdown { position: relative; }
+.author-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 160px;
+  background: #f7f5f0;
+  border: 1px solid rgba(212, 165, 116, 0.4);
+  border-radius: 12px;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.25);
+  padding: 8px;
+  display: none;
+  flex-direction: column;
+  gap: 4px;
+}
+.author-menu.open { display: flex; animation: cardIn 0.2s ease; }
+.author-menu a {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  color: #2c4f66;
+  text-decoration: none;
+  font-size: 0.92rem;
+  font-family: 'Noto Sans SC', sans-serif;
+  transition: background 0.15s;
+}
+.author-menu a:hover { background: #e8f4f0; }
+.author-icon { font-size: 1.05rem; }
+
+/* ============ 个人中心弹层 ============ */
+#profileOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(26, 58, 74, 0.55);
+  backdrop-filter: blur(4px);
+  padding: 16px;
+}
+
+.profile-card {
+  width: 100%;
+  max-width: 420px;
+  padding: 32px 30px;
+  background: #f7f5f0;
+  border-radius: 14px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+  border: 1px solid rgba(212, 165, 116, 0.4);
+  position: relative;
+  font-family: 'Noto Sans SC', 'PingFang SC', sans-serif;
+  animation: cardIn 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.profile-close {
+  position: absolute;
+  top: 16px; right: 16px;
+  width: 30px; height: 30px;
+  border: none;
+  background: transparent;
+  font-size: 1.1rem;
+  color: #8a8a8a;
+  cursor: pointer;
+  border-radius: 50%;
+}
+.profile-close:hover { background: #eee; color: #c93756; }
+
+.profile-card h2 {
+  margin: 0 0 22px;
+  font-size: 1.35rem;
+  color: #2c4f66;
+  letter-spacing: 0.12em;
+}
+
+.profile-section {
+  margin-bottom: 20px;
+}
+.profile-section label {
+  display: block;
+  font-size: 0.82rem;
+  color: #8a8a8a;
+  margin-bottom: 6px;
+  letter-spacing: 0.05em;
+}
+.profile-section input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d4cfc7;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  background: #faf8f3;
+  box-sizing: border-box;
+  outline: none;
+  font-family: inherit;
+}
+.profile-section input:focus { border-color: #5f9ea0; }
+.profile-section input:disabled { color: #555; background: #efece6; }
+
+.profile-section .primary-btn { margin-top: 8px; width: auto; }
+
+.profile-msg {
+  margin-top: 10px;
+  font-size: 0.82rem;
+  min-height: 1.2em;
+  color: #8a8a8a;
+}
+.profile-msg.error   { color: #c93756; }
+.profile-msg.success { color: #3d6b4f; }
+
+.logout-full-btn {
+  width: 100%;
+  margin-top: 8px;
+  padding: 11px;
+  border: 1px solid #c93756;
+  border-radius: 8px;
+  background: #fff;
+  color: #c93756;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s;
+}
+.logout-full-btn:hover { background: #c93756; color: #fff; }
+
+/* ============ 每日公告：大屏居中悬浮 + 强虚化背景 ============ */
+#daily-announce {
+  position: fixed;
+  inset: 0;
+  z-index: 99997;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  animation: fadeIn 0.25s ease;
+}
+.announce-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(20, 45, 60, 0.62);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.announce-card {
+  position: relative;
+  width: 100%;
+  max-width: 620px;
+  max-height: 80vh;
+  padding: 40px 44px 36px;
+  background: #f7f5f0;
+  border-radius: 18px;
+  box-shadow: 0 30px 80px rgba(0,0,0,0.45);
+  border: 1px solid rgba(212, 165, 116, 0.45);
+  font-family: 'Noto Sans SC', 'PingFang SC', sans-serif;
+  animation: cardIn 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.15);
+  overflow-y: auto;
+}
+.announce-badge {
+  display: inline-block;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #4a7c8c;
+  letter-spacing: 0.12em;
+  margin-bottom: 18px;
+  padding: 5px 16px;
+  background: #e8f4f0;
+  border-radius: 20px;
+  border: 1px solid rgba(95,158,160,0.35);
+}
+.announce-body {
+  font-size: 1.15rem;
+  line-height: 2;
+  color: #2c4f66;
+  white-space: pre-wrap;
+  word-break: break-word;
+  min-height: 4em;
+  padding: 24px 26px;
+  background: #faf8f3;
+  border: 1px solid #d4cfc7;
+  border-radius: 12px;
+  margin-bottom: 26px;
+}
+.announce-ok {
+  width: 100%;
+  padding: 13px;
+  font-size: 1rem;
+  letter-spacing: 0.1em;
+}
+
+/* ============ 管理员公告编辑窗口 ============ */
+#announce-editor {
+  position: fixed;
+  inset: 0;
+  z-index: 99997;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(26, 58, 74, 0.5);
+  backdrop-filter: blur(6px);
+  padding: 16px;
+}
+.announce-editor-card {
+  width: 100%;
+  max-width: 500px;
+  padding: 28px;
+  background: #f7f5f0;
+  border-radius: 14px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+  border: 1px solid rgba(212, 165, 116, 0.4);
+  position: relative;
+  font-family: 'Noto Sans SC', 'PingFang SC', sans-serif;
+  animation: cardIn 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.announce-editor-card h3 {
+  margin: 0 0 8px;
+  font-size: 1.2rem;
+  color: #2c4f66;
+}
+.announce-editor-card textarea {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #d4cfc7;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  background: #faf8f3;
+  box-sizing: border-box;
+  outline: none;
+  font-family: inherit;
+  resize: vertical;
+  margin-top: 12px;
+}
+.announce-editor-card textarea:focus { border-color: #5f9ea0; }
+.announce-editor-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+/* ============ 航班信息区（左侧面板内的原始数据框） ============ */
+.flight-status {
+  font-size: 0.78rem;
+  color: #8a8a8a;
+  min-height: 1.2em;
+  font-family: 'Noto Sans SC', sans-serif;
+}
+.flight-status.success { color: #3d6b4f; }
+.flight-status.error   { color: #c93756; }
+.flight-status.info    { color: #4a7c8c; }
